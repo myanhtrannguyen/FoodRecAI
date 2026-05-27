@@ -1,32 +1,37 @@
 ===== DATA =====
-Data file: D:\Hust\Năm ba\DS\prj\data\data_for_sentiment_analysis\reviews_clean_2.jsonl
-Total used: 45500
-Train size: 36400
-Test size: 9100
-Skipped rating == 10.0: 13898
-Skipped invalid rows: 48123
+Data dir: D:\Hust\Năm ba\DS\prj\data\data_for_sentiment_analysis
+Train file: D:\Hust\Năm ba\DS\prj\data\data_for_sentiment_analysis\train.jsonl
+Valid file: D:\Hust\Năm ba\DS\prj\data\data_for_sentiment_analysis\valid.jsonl
+Test file: D:\Hust\Năm ba\DS\prj\data\data_for_sentiment_analysis\test.jsonl
+Total used: 107521
+Train size: 86015
+Valid size: 10751
+Test size: 10755
+Skipped invalid rows: 0
 Model file: D:\Hust\Năm ba\DS\prj\algorithm\naive_bayes\result\naive_bayes_model.joblib
 
 ===== METRICS =====
-accuracy: 0.9332
-balanced_accuracy: 0.8947
-macro_precision: 0.9479
-macro_recall: 0.8947
-macro_f1: 0.9161
-weighted_precision: 0.9364
-weighted_recall: 0.9332
-weighted_f1: 0.9311
+accuracy: 0.7437
+balanced_accuracy: 0.7137
+macro_precision: 0.8008
+macro_recall: 0.7137
+macro_f1: 0.7422
+weighted_precision: 0.7636
+weighted_recall: 0.7437
+weighted_f1: 0.7426
 
 ===== CLASSIFICATION REPORT =====
               precision    recall  f1-score   support
 
-    negative       0.98      0.80      0.88      2747
-    positive       0.92      0.99      0.95      6353
+    negative       0.92      0.62      0.74      1375
+     neutral       0.68      0.85      0.75      4813
+    positive       0.81      0.66      0.73      4567
 
-    accuracy                           0.93      9100
-   macro avg       0.95      0.89      0.92      9100
-weighted avg       0.94      0.93      0.93      9100
+    accuracy                           0.74     10755
+   macro avg       0.80      0.71      0.74     10755
+weighted avg       0.76      0.74      0.74     10755
 
 ===== CONFUSION MATRIX =====
-[[2191  556]
- [  52 6301]]
+[[ 857  445   73]
+ [  65 4105  643]
+ [  13 1517 3037]]

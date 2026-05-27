@@ -1,18 +1,30 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="370" height="440" viewBox="0 0 370 440">
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="550" viewBox="0 0 480 550">
 <rect width="100%" height="100%" fill="white"/>
-<text x="185.0" y="32" text-anchor="middle" font-family="Arial" font-size="18" font-weight="700">Naive Bayes Sentiment Confusion Matrix</text>
-<text x="230.0" y="90" text-anchor="middle" font-family="Arial" font-size="14">Predicted label</text>
-<text x="20" y="290.0" text-anchor="middle" font-family="Arial" font-size="14" transform="rotate(-90 20 290.0)">True label</text>
+<text x="240.0" y="32" text-anchor="middle" font-family="Arial" font-size="18" font-weight="700">Naive Bayes Sentiment Confusion Matrix</text>
+<text x="285.0" y="90" text-anchor="middle" font-family="Arial" font-size="14">Predicted label</text>
+<text x="20" y="345.0" text-anchor="middle" font-family="Arial" font-size="14" transform="rotate(-90 20 345.0)">True label</text>
 <text x="175.0" y="160" text-anchor="middle" font-family="Arial" font-size="13">negative</text>
-<text x="285.0" y="160" text-anchor="middle" font-family="Arial" font-size="13">positive</text>
+<text x="285.0" y="160" text-anchor="middle" font-family="Arial" font-size="13">neutral</text>
+<text x="395.0" y="160" text-anchor="middle" font-family="Arial" font-size="13">positive</text>
 <text x="105" y="240.0" text-anchor="end" font-family="Arial" font-size="13">negative</text>
-<text x="105" y="350.0" text-anchor="end" font-family="Arial" font-size="13">positive</text>
-<rect x="120" y="180" width="110" height="110" fill="rgb(192,197,255)" stroke="#d0d7de"/>
-<text x="175.0" y="241.0" text-anchor="middle" font-family="Arial" font-size="18" font-weight="700" fill="#111827">2191</text>
-<rect x="230" y="180" width="110" height="110" fill="rgb(231,236,255)" stroke="#d0d7de"/>
-<text x="285.0" y="241.0" text-anchor="middle" font-family="Arial" font-size="18" font-weight="700" fill="#111827">556</text>
-<rect x="120" y="290" width="110" height="110" fill="rgb(243,248,255)" stroke="#d0d7de"/>
-<text x="175.0" y="351.0" text-anchor="middle" font-family="Arial" font-size="18" font-weight="700" fill="#111827">52</text>
+<text x="105" y="350.0" text-anchor="end" font-family="Arial" font-size="13">neutral</text>
+<text x="105" y="460.0" text-anchor="end" font-family="Arial" font-size="13">positive</text>
+<rect x="120" y="180" width="110" height="110" fill="rgb(213,218,255)" stroke="#d0d7de"/>
+<text x="175.0" y="241.0" text-anchor="middle" font-family="Arial" font-size="18" font-weight="700" fill="#111827">857</text>
+<rect x="230" y="180" width="110" height="110" fill="rgb(228,233,255)" stroke="#d0d7de"/>
+<text x="285.0" y="241.0" text-anchor="middle" font-family="Arial" font-size="18" font-weight="700" fill="#111827">445</text>
+<rect x="340" y="180" width="110" height="110" fill="rgb(242,247,255)" stroke="#d0d7de"/>
+<text x="395.0" y="241.0" text-anchor="middle" font-family="Arial" font-size="18" font-weight="700" fill="#111827">73</text>
+<rect x="120" y="290" width="110" height="110" fill="rgb(242,247,255)" stroke="#d0d7de"/>
+<text x="175.0" y="351.0" text-anchor="middle" font-family="Arial" font-size="18" font-weight="700" fill="#111827">65</text>
 <rect x="230" y="290" width="110" height="110" fill="rgb(95,100,255)" stroke="#d0d7de"/>
-<text x="285.0" y="351.0" text-anchor="middle" font-family="Arial" font-size="18" font-weight="700" fill="#111827">6301</text>
+<text x="285.0" y="351.0" text-anchor="middle" font-family="Arial" font-size="18" font-weight="700" fill="#111827">4105</text>
+<rect x="340" y="290" width="110" height="110" fill="rgb(221,226,255)" stroke="#d0d7de"/>
+<text x="395.0" y="351.0" text-anchor="middle" font-family="Arial" font-size="18" font-weight="700" fill="#111827">643</text>
+<rect x="120" y="400" width="110" height="110" fill="rgb(244,249,255)" stroke="#d0d7de"/>
+<text x="175.0" y="461.0" text-anchor="middle" font-family="Arial" font-size="18" font-weight="700" fill="#111827">13</text>
+<rect x="230" y="400" width="110" height="110" fill="rgb(189,194,255)" stroke="#d0d7de"/>
+<text x="285.0" y="461.0" text-anchor="middle" font-family="Arial" font-size="18" font-weight="700" fill="#111827">1517</text>
+<rect x="340" y="400" width="110" height="110" fill="rgb(134,139,255)" stroke="#d0d7de"/>
+<text x="395.0" y="461.0" text-anchor="middle" font-family="Arial" font-size="18" font-weight="700" fill="#111827">3037</text>
 </svg>

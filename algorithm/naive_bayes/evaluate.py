@@ -15,10 +15,10 @@ from sklearn.metrics import (
 )
 
 try:
-    from .dataset import LABELS, load_train_test_split
+    from .dataset import LABELS, load_data_splits
     from .train import DEFAULT_MODEL_PATH, train_model
 except ImportError:
-    from dataset import LABELS, load_train_test_split
+    from dataset import LABELS, load_data_splits
     from train import DEFAULT_MODEL_PATH, train_model
 
 
@@ -33,11 +33,8 @@ def write_report(output_path, lines):
 
 
 def evaluate_model(
-    data_path=None,
+    data_dir=None,
     model_path=DEFAULT_MODEL_PATH,
-    test_size=0.2,
-    random_state=42,
-    exclude_rating=10.0,
     train_if_missing=False,
 ):
     model_path = Path(model_path)
@@ -47,19 +44,11 @@ def evaluate_model(
                 f"Model file not found: {model_path}. Run train.py first or pass --train-if-missing."
             )
         train_model(
-            data_path=data_path,
+            data_dir=data_dir,
             model_path=model_path,
-            test_size=test_size,
-            random_state=random_state,
-            exclude_rating=exclude_rating,
         )
 
-    _, x_test, _, y_test, stats = load_train_test_split(
-        data_path=data_path,
-        test_size=test_size,
-        random_state=random_state,
-        exclude_rating=exclude_rating,
-    )
+    _, _, x_test, _, _, y_test, stats = load_data_splits(data_dir=data_dir)
     model = joblib.load(model_path)
     y_pred = model.predict(x_test)
 
@@ -80,32 +69,34 @@ def evaluate_model(
 
 def main():
     parser = argparse.ArgumentParser(description="Evaluate Naive Bayes sentiment model.")
-    parser.add_argument("--data", help="Path to data_clean.jsonl or reviews_clean.jsonl")
+    parser.add_argument(
+        "--data-dir",
+        "--data",
+        dest="data_dir",
+        help="Directory containing train.jsonl, valid.jsonl, and test.jsonl",
+    )
     parser.add_argument("--model", default=str(DEFAULT_MODEL_PATH))
-    parser.add_argument("--test-size", type=float, default=0.2)
-    parser.add_argument("--random-state", type=int, default=42)
-    parser.add_argument("--exclude-rating", type=float, default=10.0)
     parser.add_argument("--train-if-missing", action="store_true")
     args = parser.parse_args()
 
     OUTPUT_DIR.mkdir(exist_ok=True)
     model_path = Path(args.model)
     metrics, report, matrix, stats = evaluate_model(
-        data_path=args.data,
+        data_dir=args.data_dir,
         model_path=model_path,
-        test_size=args.test_size,
-        random_state=args.random_state,
-        exclude_rating=args.exclude_rating,
         train_if_missing=args.train_if_missing,
     )
 
     report_lines = [
         "===== DATA =====",
-        f"Data file: {stats['data_path']}",
+        f"Data dir: {stats['data_dir']}",
+        f"Train file: {stats['train_path']}",
+        f"Valid file: {stats['valid_path']}",
+        f"Test file: {stats['test_path']}",
         f"Total used: {stats['total_used']}",
         f"Train size: {stats['train_size']}",
+        f"Valid size: {stats['valid_size']}",
         f"Test size: {stats['test_size']}",
-        f"Skipped rating == {stats['exclude_rating']}: {stats['skipped_excluded_rating']}",
         f"Skipped invalid rows: {stats['skipped_invalid']}",
         f"Model file: {model_path}",
         "",

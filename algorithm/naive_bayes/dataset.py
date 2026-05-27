@@ -1,17 +1,15 @@
 import json
 from pathlib import Path
 
-from sklearn.model_selection import train_test_split
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_DATA_PATHS = [
-    PROJECT_ROOT / "data" / "data_for_sentiment_analysis" / "data_clean.jsonl",
-    PROJECT_ROOT / "data" / "data_for_sentiment_analysis" / "reviews_clean_2.jsonl",
-    PROJECT_ROOT / "data" / "raw_data" / "data_clean.jsonl",
-    PROJECT_ROOT / "data" / "raw_data" / "reviews_clean_2.jsonl",
-]
-LABELS = ["negative", "positive"]
+DEFAULT_DATA_DIR = PROJECT_ROOT / "data" / "data_for_sentiment_analysis"
+DEFAULT_SPLIT_PATHS = {
+    "train": DEFAULT_DATA_DIR / "train.jsonl",
+    "valid": DEFAULT_DATA_DIR / "valid.jsonl",
+    "test": DEFAULT_DATA_DIR / "test.jsonl",
+}
+LABELS = ["negative", "neutral", "positive"]
 
 
 def rating_to_label(rating):
@@ -20,26 +18,26 @@ def rating_to_label(rating):
     return "negative"
 
 
-def resolve_data_path(data_path=None):
-    if data_path:
-        path = Path(data_path)
+def resolve_split_path(split, data_dir=None):
+    if split not in DEFAULT_SPLIT_PATHS:
+        raise ValueError(f"Unknown split: {split}")
+
+    if data_dir:
+        path = Path(data_dir)
         if not path.is_absolute():
             path = PROJECT_ROOT / path
-        return path
+        return path / f"{split}.jsonl"
 
-    for path in DEFAULT_DATA_PATHS:
-        if path.exists():
-            return path
-
-    candidates = "\n".join(str(path) for path in DEFAULT_DATA_PATHS)
-    raise FileNotFoundError(f"Could not find clean data file. Checked:\n{candidates}")
+    return DEFAULT_SPLIT_PATHS[split]
 
 
-def load_reviews(data_path=None, exclude_rating=10.0):
-    path = resolve_data_path(data_path)
+def load_reviews(split, data_dir=None):
+    path = resolve_split_path(split, data_dir)
+    if not path.exists():
+        raise FileNotFoundError(f"Split file not found: {path}")
+
     texts = []
     labels = []
-    skipped_excluded_rating = 0
     skipped_invalid = 0
 
     with open(path, "r", encoding="utf-8") as file:
@@ -50,14 +48,17 @@ def load_reviews(data_path=None, exclude_rating=10.0):
 
             try:
                 item = json.loads(line)
-                rating = float(item["rating"])
-            except (json.JSONDecodeError, KeyError, TypeError, ValueError):
+            except json.JSONDecodeError:
                 skipped_invalid += 1
                 continue
 
-            if exclude_rating is not None and rating == exclude_rating:
-                skipped_excluded_rating += 1
-                continue
+            rating = item.get("rating")
+            if rating is not None:
+                try:
+                    rating = float(rating)
+                except (TypeError, ValueError):
+                    skipped_invalid += 1
+                    continue
 
             title = item.get("title") or ""
             content = item.get("content") or ""
@@ -66,7 +67,9 @@ def load_reviews(data_path=None, exclude_rating=10.0):
                 skipped_invalid += 1
                 continue
 
-            label = item.get("rating_label") or rating_to_label(rating)
+            label = item.get("rating_label")
+            if not label and rating is not None:
+                label = rating_to_label(rating)
             if label not in LABELS:
                 skipped_invalid += 1
                 continue
@@ -76,30 +79,47 @@ def load_reviews(data_path=None, exclude_rating=10.0):
 
     stats = {
         "data_path": path,
+        "split": split,
         "total_used": len(texts),
-        "skipped_excluded_rating": skipped_excluded_rating,
         "skipped_invalid": skipped_invalid,
-        "exclude_rating": exclude_rating,
     }
     return texts, labels, stats
 
 
-def load_train_test_split(data_path=None, test_size=0.2, random_state=42, exclude_rating=10.0):
-    texts, labels, stats = load_reviews(data_path, exclude_rating=exclude_rating)
-    if not texts:
-        raise ValueError("No valid reviews after filtering.")
+def load_data_splits(data_dir=None):
+    x_train, y_train, train_stats = load_reviews("train", data_dir=data_dir)
+    x_valid, y_valid, valid_stats = load_reviews("valid", data_dir=data_dir)
+    x_test, y_test, test_stats = load_reviews("test", data_dir=data_dir)
 
-    x_train, x_test, y_train, y_test = train_test_split(
-        texts,
-        labels,
-        test_size=test_size,
-        random_state=random_state,
-        stratify=labels,
-    )
-    stats.update({
+    if not x_train:
+        raise ValueError("No valid train reviews.")
+    if not x_valid:
+        raise ValueError("No valid validation reviews.")
+    if not x_test:
+        raise ValueError("No valid test reviews.")
+
+    stats = {
+        "data_dir": resolve_data_dir(data_dir),
+        "train_path": train_stats["data_path"],
+        "valid_path": valid_stats["data_path"],
+        "test_path": test_stats["data_path"],
         "train_size": len(x_train),
+        "valid_size": len(x_valid),
         "test_size": len(x_test),
-        "test_ratio": test_size,
-        "random_state": random_state,
-    })
-    return x_train, x_test, y_train, y_test, stats
+        "total_used": len(x_train) + len(x_valid) + len(x_test),
+        "skipped_invalid": (
+            train_stats["skipped_invalid"]
+            + valid_stats["skipped_invalid"]
+            + test_stats["skipped_invalid"]
+        ),
+    }
+    return x_train, x_valid, x_test, y_train, y_valid, y_test, stats
+
+
+def resolve_data_dir(data_dir=None):
+    if data_dir:
+        path = Path(data_dir)
+        if not path.is_absolute():
+            path = PROJECT_ROOT / path
+        return path
+    return DEFAULT_DATA_DIR
