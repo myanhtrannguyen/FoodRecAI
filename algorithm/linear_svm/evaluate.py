@@ -4,7 +4,7 @@ import sys
 import joblib
 import matplotlib.pyplot as plt
 import numpy as np
-from data_processor import data_splitting
+from data_processor import load_split_data
 from sklearn.metrics import (
     accuracy_score,
     balanced_accuracy_score,
@@ -27,17 +27,17 @@ def write_report_txt(output_path, lines):
         f.write("\n".join(lines) + "\n")
         f.write("\n" + "="*60 + "\n\n")
 
-def evaluate_svm_model(data_path, model_path):
+def evaluate_svm_model(data_dir, model_path):
     model_path = Path(model_path)
     if not model_path.exists():
         raise FileNotFoundError(f"Cannot find model file: {model_path}")
 
-    # Load the test data (test_size=0.2 and random_state=42 are handled inside data_processor)
-    X_train_raw, X_test_raw, y_train, y_test = data_splitting(data_path=data_path)
+    # Load the dataset splits
+    X_train, y_train, X_val, y_val, X_test, y_test = load_split_data(data_dir=data_dir)
     
     # Load the trained pipeline from disk
     pipeline = joblib.load(model_path)
-    y_pred = pipeline.predict(X_test_raw)
+    y_pred = pipeline.predict(X_test)
 
     # Calculate the evaluation metrics for the report
     metrics = {
@@ -53,9 +53,10 @@ def evaluate_svm_model(data_path, model_path):
     
     # Calculate evaluation stats for reporting
     eval_stats = {
-        "total_used": len(X_train_raw) + len(X_test_raw),
-        "train_size": len(X_train_raw),
-        "test_size": len(X_test_raw)
+        "train_size": len(X_train),
+        "val_size": len(X_val),
+        "test_size": len(X_test),
+        "total_used": len(X_train) + len(X_val) + len(X_test),
     }
     
     # Define the class labels for the classification report and confusion matrix
@@ -75,7 +76,7 @@ def draw_simple_confusion_matrix(matrix, labels, output_path, model_name="SVM Mo
     plt.rcParams['font.serif'] = ['Times New Roman', 'Times', 'DejaVu Serif']
     
     # Draw the pink background for the confusion matrix area with some transparency
-    ax.matshow(matrix, cmap="pink", alpha=0.4)
+    im = ax.matshow(matrix, cmap="Blues")
     
     # Set the ticks to be at the center of each cell
     ax.set_xticks(np.arange(len(labels)))
@@ -96,15 +97,18 @@ def draw_simple_confusion_matrix(matrix, labels, output_path, model_name="SVM Mo
     # Turn off the minor ticks themselves so only the grid lines are visible
     ax.tick_params(which="minor", bottom=False, left=False)
 
-    # Calculate the total sum of the confusion matrix for percentage calculations
+    # Calculate the maximum value in the confusion matrix for scaling the text color if needed
+    max_val = matrix.max()
     sum_matrix = np.sum(matrix)
+   
+   # Add the text annotations for each cell in the confusion matrix
     for i in range(matrix.shape[0]):       
         for j in range(matrix.shape[1]):   
             value = matrix[i, j]
-            percentage = (value / sum_matrix) * 100
-            cell_text = f"{value}\n({percentage:.1f}%)"
+            cell_text = str(value) 
+            text_color = "w" if value > max_val / 2 else "k" 
             ax.text(j, i, cell_text, ha="center", va="center", 
-                    fontsize=10, fontweight="bold", color="#111111")
+                    fontsize=11, fontweight="bold", color=text_color)
 
     # Set the title and axis labels with the specified font and size
     ax.set_title(f'CONFUSION MATRIX\n({model_name})', fontsize=11, fontweight='bold', pad=15, fontname='Times New Roman')
@@ -123,7 +127,7 @@ def draw_simple_confusion_matrix(matrix, labels, output_path, model_name="SVM Mo
 
 def main():
     parser = argparse.ArgumentParser(description="This module evaluates the SVM model and exports a .txt report file.")
-    parser.add_argument("--data", default="reviews_clean.jsonl")
+    parser.add_argument("--data-dir", default=None)
     parser.add_argument("--model-name", required=True)
     args = parser.parse_args()
 
@@ -134,19 +138,20 @@ def main():
 
     # Evaluate the model and get all the necessary information for the report
     metrics, report, matrix, eval_stats, labels = evaluate_svm_model(
-        data_path=args.data,
+        data_dir=args.data_dir,
         model_path=actual_model_path
     )
 
     # Prepare the lines for the evaluation report text file
     report_lines = [
-        "===== DATA =====",
-        f"Total used: {eval_stats['total_used']}",
-        f"Train size: {eval_stats['train_size']}",
-        f"Test size: {eval_stats['test_size']}",
+       "===== DATA SUMMARY =====",
+        f"Total dataset: {eval_stats['total_used']} rows",
+        f"├── Train size: {eval_stats['train_size']} rows",
+        f"├── Valid size: {eval_stats['val_size']} rows",
+        f"└── Test size:  {eval_stats['test_size']} rows",
         f"Tested Model File: {actual_model_path.name}",
         "",
-        "===== METRICS =====",
+        "===== METRICS (TEST SET) =====",
         *[f"{name}: {value:.4f}" for name, value in metrics.items()],
         "",
         "===== CLASSIFICATION REPORT =====",
