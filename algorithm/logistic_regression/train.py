@@ -6,6 +6,11 @@ from pathlib import Path
 
 import joblib
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, f1_score
+import random
+import numpy as np
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics.pairwise import cosine_similarity
 
 try:
     from .dataset import LABELS, load_data_splits
@@ -130,6 +135,103 @@ def train_model(
     return model, stats
 
 
+class WrappedModel:
+    def __init__(self, vectorizer, classifier):
+        self.vectorizer = vectorizer
+        self.classifier = classifier
+
+    def predict(self, X):
+        X_t = self.vectorizer.transform(X)
+        return self.classifier.predict(X_t)
+
+
+def run_selection(
+    data_dir=None,
+    output_dir=None,
+    model_path=None,
+    rounds=4,
+    sample_frac=1.0,
+    max_features=50000,
+    ngram_max=2,
+    min_df=2,
+    C=1.0,
+    random_state=42,
+):
+    x_train, x_valid, x_test, y_train, y_valid, y_test, data_stats = load_data_splits(data_dir=data_dir)
+
+    rng = random.Random(random_state)
+
+    vectorizer = TfidfVectorizer(lowercase=True, analyzer="word", ngram_range=(1, ngram_max), max_features=max_features, min_df=min_df)
+    vectorizer.fit(x_train + x_valid)
+
+    tfidf_valid = vectorizer.transform(x_valid)
+    valid_centroid = np.asarray(tfidf_valid.mean(axis=0)).ravel()
+
+    best_sim = -1.0
+    best_model = None
+    best_stats = None
+
+    n_train = len(x_train)
+    sample_size = int(round(n_train * sample_frac))
+
+    for r in range(rounds):
+        sampled_idx = [rng.randrange(n_train) for _ in range(sample_size)]
+        sampled_x = [x_train[i] for i in sampled_idx]
+        sampled_y = [y_train[i] for i in sampled_idx]
+
+        tfidf_sampled = vectorizer.transform(sampled_x)
+        train_centroid = np.asarray(tfidf_sampled.mean(axis=0)).ravel()
+        sim = float(cosine_similarity(train_centroid.reshape(1, -1), valid_centroid.reshape(1, -1)).ravel()[0])
+
+        clf = LogisticRegression(C=C, penalty="l2", solver="saga", max_iter=1000, random_state=random_state + r)
+        clf.fit(tfidf_sampled, sampled_y)
+
+        wrapped = WrappedModel(vectorizer, clf)
+
+        test_metrics = evaluate_split(wrapped, x_test, y_test, labels=[label for label in LABELS if label in set(y_train + y_valid + y_test)])
+
+        if sim > best_sim:
+            best_sim = sim
+            best_model = wrapped
+            best_stats = {
+                "round": r,
+                "similarity": sim,
+                "sample_size": sample_size,
+                "test_metrics": test_metrics,
+            }
+
+    output_dir = Path(output_dir) if output_dir else OUTPUT_DIR
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    model_path = Path(model_path) if model_path else output_dir / DEFAULT_MODEL_PATH.name
+    joblib.dump(best_model, model_path)
+
+    metadata = {
+        "method": "bootstrap-sample-select",
+        "rounds": rounds,
+        "best_similarity": best_sim,
+        "best_round": best_stats["round"],
+        "model_path": str(model_path),
+        "data_stats": data_stats,
+    }
+
+    with open(output_dir / "train_metadata.json", "w", encoding="utf-8") as f:
+        json.dump(metadata, f, ensure_ascii=False, indent=2)
+
+    with open(output_dir / "metrics.json", "w", encoding="utf-8") as f:
+        json.dump({"test": best_stats["test_metrics"]}, f, ensure_ascii=False, indent=2)
+
+    import csv
+    class_names = best_stats["test_metrics"]["classification_report"].keys()
+    with open(output_dir / "confusion_matrix.csv", "w", newline="", encoding="utf-8") as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow([""] + list(class_names))
+        for label, row in zip(list(class_names), best_stats["test_metrics"]["confusion_matrix"]):
+            writer.writerow([label] + row)
+
+    return model_path, metadata
+
+
 def main():
     parser = argparse.ArgumentParser(description="Train TF-IDF + Logistic Regression sentiment model.")
     parser.add_argument(
@@ -147,7 +249,28 @@ def main():
     parser.add_argument("--solver", default="saga", choices=["newton-cg", "lbfgs", "liblinear", "sag", "saga"])
     parser.add_argument("--max-iter", type=int, default=1000)
     parser.add_argument("--random-state", type=int, default=42)
+    parser.add_argument("--select-rounds", type=int, default=0, help="If >0, run selection over N bootstrap rounds and pick best model by TF-IDF centroid similarity to valid")
+    parser.add_argument("--sample-frac", type=float, default=1.0, help="Fraction of train to sample for each round (bootstrap) when using --select-rounds")
     args = parser.parse_args()
+
+    if args.select_rounds and args.select_rounds > 0:
+        model_path, metadata = run_selection(
+            data_dir=args.data_dir,
+            output_dir=args.output_dir,
+            model_path=args.model_out,
+            rounds=args.select_rounds,
+            sample_frac=args.sample_frac,
+            max_features=args.max_features,
+            ngram_max=args.ngram_max,
+            min_df=args.min_df,
+            C=args.C,
+            random_state=args.random_state,
+        )
+
+        print("Selection completed.")
+        print(f"Saved model: {model_path}")
+        print(f"Best similarity: {metadata.get('best_similarity')}")
+        return
 
     _, stats = train_model(
         data_dir=args.data_dir,

@@ -1,10 +1,9 @@
 {
-  "model": "TF-IDF + Logistic Regression",
-  "class_names": [
-    "negative",
-    "neutral",
-    "positive"
-  ],
+  "method": "bootstrap-sample-select",
+  "rounds": 4,
+  "best_similarity": 0.998078404893386,
+  "best_round": 2,
+  "model_path": "/Users/ngothinga/Documents/GitHub/FoodRecAI/algorithm/logistic_regression/result/logistic_regression_model.joblib",
   "data_stats": {
     "data_dir": "/Users/ngothinga/Documents/GitHub/FoodRecAI/data/data_for_sentiment_analysis",
     "train_path": "/Users/ngothinga/Documents/GitHub/FoodRecAI/data/data_for_sentiment_analysis/train.jsonl",
@@ -15,31 +14,5 @@
     "test_size": 10755,
     "total_used": 107521,
     "skipped_invalid": 0
-  },
-  "train_label_distribution": {
-    "neutral": 38498,
-    "positive": 36529,
-    "negative": 10988
-  },
-  "valid_label_distribution": {
-    "positive": 4566,
-    "neutral": 4812,
-    "negative": 1373
-  },
-  "test_label_distribution": {
-    "positive": 4567,
-    "neutral": 4813,
-    "negative": 1375
-  },
-  "params": {
-    "max_features": 50000,
-    "ngram_max": 2,
-    "min_df": 2,
-    "C": 1.0,
-    "penalty": "l2",
-    "solver": "saga",
-    "max_iter": 1000,
-    "random_state": 42
-  },
-  "model_path": "/Users/ngothinga/Documents/GitHub/FoodRecAI/algorithm/logistic_regression/result/logistic_regression_model.joblib"
+  }
 }
