@@ -4,9 +4,9 @@ SVM MODEL EXPERIMENTATION & EVALUATION GUIDE
 The hyperparameter tuning process for parameter C was conducted by training multiple configurations and evaluating each model independently on the Test set. The Macro F1-scores are summarized in the table below:
 
 -----------------------------------------------------------
-| C Parameter   |  5.0   |  1.0   |  0.01  |  0.1 (Optimal) |
+| C Parameter   |  5.0   |  1.0   |  0.01  |  0.1 |
 -----------------------------------------------------------
-| Macro F1-score| 74.02% | 74.33% | 73.54% | 74.94%         |
+| Macro F1-score| 74.02% | 74.33% | 73.54% | 74.94% |
 -----------------------------------------------------------
 
 Conclusion: After comparing the Macro F1-scores across all configurations, parameter C = 0.1 yields the highest performance (74.94%). Therefore, svm_pipeline_C0.1.pkl is officially selected as the optimal model for the final system integration.
