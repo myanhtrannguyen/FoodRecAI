@@ -1,0 +1,52 @@
+===== DATA =====
+Data dir: D:\ML\project\FoodRecAI\data\data_for_sentiment_analysis
+Train file: D:\ML\project\FoodRecAI\data\data_for_sentiment_analysis\train.jsonl
+Valid file: D:\ML\project\FoodRecAI\data\data_for_sentiment_analysis\valid.jsonl
+Test file: D:\ML\project\FoodRecAI\data\data_for_sentiment_analysis\test.jsonl
+Total used: 107521
+Train size: 86015
+Valid size: 10751
+Test size: 10755
+Skipped invalid rows: 0
+Model file: D:\ML\project\FoodRecAI\algorithm\random_forest\result\random_forest_model.joblib
+
+===== MODEL PARAMS =====
+tfidf__max_features: 20000
+tfidf__ngram_range: (1, 2)
+tfidf__min_df: 1
+tfidf__max_df: 1.0
+tfidf__sublinear_tf: True
+clf__n_estimators: 300
+clf__max_depth: None
+clf__min_samples_leaf: 2
+clf__min_samples_split: 2
+clf__class_weight: balanced
+clf__bootstrap: True
+clf__max_samples: None
+clf__max_features: sqrt
+
+===== METRICS =====
+accuracy: 0.7251
+balanced_accuracy: 0.7172
+macro_precision: 0.7592
+macro_recall: 0.7172
+macro_f1: 0.7309
+weighted_precision: 0.7382
+weighted_recall: 0.7251
+weighted_f1: 0.7237
+
+===== CLASSIFICATION REPORT =====
+              precision    recall  f1-score   support
+
+    negative       0.82      0.70      0.76      1375
+     neutral       0.67      0.82      0.74      4813
+    positive       0.79      0.63      0.70      4567
+
+    accuracy                           0.73     10755
+   macro avg       0.76      0.72      0.73     10755
+weighted avg       0.74      0.73      0.72     10755
+
+===== CONFUSION MATRIX =====
+[[ 961  339   75]
+ [ 153 3957  703]
+ [  54 1633 2880]]

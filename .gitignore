@@ -1,1 +1,5 @@
 /dan
+.venv/
+__pycache__/
+*.pyc
+*.joblib
