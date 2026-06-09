@@ -3,7 +3,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.pipeline import Pipeline
 
-from .dataset import LABELS
+from algorithm.logistic_regression.dataset import LABELS
 
 
 def build_logistic_pipeline(
@@ -16,8 +16,8 @@ def build_logistic_pipeline(
     solver="saga",
     max_iter=1000,
     random_state=42,
+    class_weight=None,
 ):
-    
     if num_classes is None:
         num_classes = len(LABELS)
 
@@ -30,6 +30,7 @@ def build_logistic_pipeline(
         solver=solver,
         max_iter=max_iter,
         random_state=random_state,
+        class_weight=class_weight,
         n_jobs=-1,
     )
 
@@ -57,4 +58,3 @@ def evaluate_model(pipeline, X_test, y_test, labels=None):
     report = classification_report(y_test, y_pred, target_names=labels)
     conf_matrix = confusion_matrix(y_test, y_pred)
     return report, conf_matrix
-

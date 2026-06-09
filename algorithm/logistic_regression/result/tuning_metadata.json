@@ -1,9 +1,12 @@
 {
-  "method": "bootstrap-sample-select",
-  "rounds": 4,
-  "best_similarity": 0.998078404893386,
-  "best_round": 2,
-  "model_path": "/Users/ngothinga/Documents/GitHub/FoodRecAI/algorithm/logistic_regression/result/logistic_regression_model.joblib",
+  "model_type": "Logistic Regression",
+  "best_params": {
+    "C": 1.0,
+    "max_features": 50000,
+    "ngram_max": 2,
+    "penalty": "l2",
+    "solver": "saga"
+  },
   "data_stats": {
     "data_dir": "/Users/ngothinga/Documents/GitHub/FoodRecAI/data/data_for_sentiment_analysis",
     "train_path": "/Users/ngothinga/Documents/GitHub/FoodRecAI/data/data_for_sentiment_analysis/train.jsonl",
@@ -14,5 +17,10 @@
     "test_size": 10755,
     "total_used": 107521,
     "skipped_invalid": 0
+  },
+  "train_label_distribution": {
+    "neutral": 38498,
+    "positive": 36529,
+    "negative": 10988
   }
 }

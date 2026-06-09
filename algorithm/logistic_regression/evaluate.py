@@ -1,9 +1,15 @@
 import argparse
+import json
 from html import escape
 from pathlib import Path
 import sys
 
+ROOT_DIR = Path(__file__).resolve().parents[2]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
 import joblib
+import numpy as np
 from sklearn.metrics import (
     accuracy_score,
     balanced_accuracy_score,
@@ -14,12 +20,8 @@ from sklearn.metrics import (
     recall_score,
 )
 
-try:
-    from .dataset import LABELS, load_data_splits
-    from .train import DEFAULT_MODEL_PATH, train_model
-except ImportError:
-    from dataset import LABELS, load_data_splits
-    from train import DEFAULT_MODEL_PATH, train_model
+from algorithm.logistic_regression.dataset import LABELS, load_data_splits
+from algorithm.logistic_regression.train import DEFAULT_MODEL_PATH, train_model, OUTPUT_DIR as TRAIN_OUTPUT_DIR
 
 
 OUTPUT_DIR = Path(__file__).resolve().parent / "result"
@@ -34,12 +36,28 @@ def write_report(output_path, lines):
 
 def evaluate_model(data_dir=None, model_path=DEFAULT_MODEL_PATH, train_if_missing=False):
     model_path = Path(model_path)
+    best_params = "Loaded from existing model"
+
     if not model_path.exists():
         if not train_if_missing:
             raise FileNotFoundError(
                 f"Model file not found: {model_path}. Run train.py first or pass --train-if-missing."
             )
-        train_model(data_dir=data_dir, model_path=model_path)
+        print("Model not found. Starting hyperparameter tuning...")
+        _, stats = train_model(
+            data_dir=data_dir, 
+            model_path=model_path,
+            c_list=[0.1, 1.0, 10.0],
+            max_features_list=[10000, 30000, 50000],
+            ngram_max_list=[1, 2]
+        )
+        best_params = stats.get("best_params", "Unknown")
+    else:
+        metadata_path = model_path.parent / "tuning_metadata.json"
+        if metadata_path.exists():
+            with open(metadata_path, "r") as f:
+                meta = json.load(f)
+                best_params = meta.get("best_params", best_params)
 
     _, _, x_test, _, _, y_test, stats = load_data_splits(data_dir=data_dir)
     model = joblib.load(model_path)
@@ -51,17 +69,17 @@ def evaluate_model(data_dir=None, model_path=DEFAULT_MODEL_PATH, train_if_missin
         "macro_precision": precision_score(y_test, y_pred, average="macro", zero_division=0),
         "macro_recall": recall_score(y_test, y_pred, average="macro", zero_division=0),
         "macro_f1": f1_score(y_test, y_pred, average="macro", zero_division=0),
-        "weighted_precision": precision_score(y_test, y_pred, average="weighted", zero_division=0),
-        "weighted_recall": recall_score(y_test, y_pred, average="weighted", zero_division=0),
         "weighted_f1": f1_score(y_test, y_pred, average="weighted", zero_division=0),
     }
+    
     report = classification_report(y_test, y_pred, labels=LABELS, zero_division=0)
     matrix = confusion_matrix(y_test, y_pred, labels=LABELS)
-    return metrics, report, matrix, stats
+    
+    return metrics, report, matrix, stats, best_params
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Evaluate Logistic Regression model.")
+    parser = argparse.ArgumentParser(description="Evaluate Tuned Logistic Regression model.")
     parser.add_argument(
         "--data-dir",
         "--data",
@@ -74,26 +92,23 @@ def main():
 
     OUTPUT_DIR.mkdir(exist_ok=True)
     model_path = Path(args.model)
-    metrics, report, matrix, stats = evaluate_model(
+    
+    metrics, report, matrix, stats, best_params = evaluate_model(
         data_dir=args.data_dir,
         model_path=model_path,
         train_if_missing=args.train_if_missing,
     )
 
     report_lines = [
-        "===== DATA =====",
-        f"Data dir: {stats['data_dir']}",
-        f"Train file: {stats['train_path']}",
-        f"Valid file: {stats['valid_path']}",
-        f"Test file: {stats['test_path']}",
-        f"Total used: {stats['total_used']}",
-        f"Train size: {stats['train_size']}",
-        f"Valid size: {stats['valid_size']}",
-        f"Test size: {stats['test_size']}",
-        f"Skipped invalid rows: {stats['skipped_invalid']}",
+        "===== MODEL CONFIGURATION =====",
         f"Model file: {model_path}",
+        f"Best Parameters Found: {best_params}",
         "",
-        "===== METRICS =====",
+        "===== DATA STATS =====",
+        f"Data dir: {stats.get('data_dir', 'N/A')}",
+        f"Test size: {stats.get('test_size', len(matrix.sum(axis=1)))}",
+        "",
+        "===== TEST SET METRICS =====",
         *[f"{name}: {value:.4f}" for name, value in metrics.items()],
         "",
         "===== CLASSIFICATION REPORT =====",
@@ -103,77 +118,17 @@ def main():
     ]
 
     report_path = OUTPUT_DIR / "logistic_regression_report.txt"
-    matrix_path = OUTPUT_DIR / "confusion_matrix_3_labels.svg"
+    matrix_path = OUTPUT_DIR / "confusion_matrix_tuned.svg"
 
     write_report(report_path, report_lines)
     matrix_path.write_text(
-        matrix_to_svg(matrix, "Logistic Regression Sentiment Confusion Matrix"),
+        matrix_to_svg(matrix, "Logistic Regression Sentiment (Tuned)"),
         encoding="utf-8",
     )
 
     print("\n".join(report_lines))
     print(f"\nSaved report: {report_path}")
     print(f"Saved confusion matrix: {matrix_path}")
-
-
-def matrix_to_svg(matrix, title):
-    max_value = max(matrix.max(), 1)
-    cell_size = 110
-    label_size = 120
-    title_height = 60
-    width = label_size + cell_size * len(LABELS) + 30
-    height = title_height + label_size + cell_size * len(LABELS) + 40
-
-    parts = [
-        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
-        f'viewBox="0 0 {width} {height}">',
-        '<rect width="100%" height="100%" fill="white"/>',
-        f'<text x="{width / 2}" y="32" text-anchor="middle" '
-        f'font-family="Arial" font-size="18" font-weight="700">{escape(title)}</text>',
-        f'<text x="{label_size + cell_size * len(LABELS) / 2}" y="{title_height + 30}" '
-        'text-anchor="middle" font-family="Arial" font-size="14">Predicted label</text>',
-        f'<text x="20" y="{title_height + label_size + cell_size * len(LABELS) / 2}" '
-        'text-anchor="middle" font-family="Arial" font-size="14" '
-        f'transform="rotate(-90 20 {title_height + label_size + cell_size * len(LABELS) / 2})">True label</text>',
-    ]
-
-    for col, label in enumerate(LABELS):
-        x = label_size + col * cell_size + cell_size / 2
-        y = title_height + label_size - 20
-        parts.append(
-            f'<text x="{x}" y="{y}" text-anchor="middle" font-family="Arial" '
-            f'font-size="13">{escape(label)}</text>'
-        )
-
-    for row, label in enumerate(LABELS):
-        x = label_size - 15
-        y = title_height + label_size + row * cell_size + cell_size / 2 + 5
-        parts.append(
-            f'<text x="{x}" y="{y}" text-anchor="end" font-family="Arial" '
-            f'font-size="13">{escape(label)}</text>'
-        )
-
-    for row in range(len(LABELS)):
-        for col in range(len(LABELS)):
-            value = int(matrix[row, col])
-            intensity = value / max_value
-            blue = int(245 - 150 * intensity)
-            fill = f"rgb({blue},{blue + 5},255)"
-            x = label_size + col * cell_size
-            y = title_height + label_size + row * cell_size
-            parts.append(
-                f'<rect x="{x}" y="{y}" width="{cell_size}" height="{cell_size}" '
-                f'fill="{fill}" stroke="#d0d7de"/>'
-            )
-            parts.append(
-                f'<text x="{x + cell_size / 2}" y="{y + cell_size / 2 + 6}" '
-                'text-anchor="middle" font-family="Arial" font-size="18" '
-                f'font-weight="700" fill="#111827">{value}</text>'
-            )
-
-    parts.append("</svg>")
-    return "\n".join(parts)
-
 
 if __name__ == "__main__":
     main()
